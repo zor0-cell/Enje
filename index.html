@@ -2,162 +2,1265 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Music Player</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Здесь есть только те музыке котрый мне нравиться!!!">
+    <meta name="theme-color" content="#1db954">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="/manifest.json">
-    <link rel="stylesheet" href="styles.css">
-    <meta name="theme-color" content="#000000">
+    <title>Музыкальный Плеер</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Переменные для тем */
+        :root {
+        --primary: #1db954;
+        --primary-hover: #1ed760;
+        --dark: #121212;
+        --dark-secondary: #181818;
+        --dark-tertiary: #282828;
+        --text-primary: #ffffff;
+        --text-secondary: #b3b3b3;
+        }
+        .light-theme {
+         --dark: #f5f5f5;
+         --dark-secondary: #e5e5e5;
+         --dark-tertiary: #d4d4d4;
+         --text-primary: #000000;
+         --text-secondary: #666666;
+        }
+
+        /* Общие стили */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--dark);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Карточки треков и плейлистов */
+        .music-card, .playlist-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: var(--dark-secondary);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .music-card:hover, .playlist-card:hover {
+            transform: translateY(-5px);
+            background: var(--dark-tertiary);
+        }
+
+        /* Полноэкранные тексты песен */
+        .fullscreen-lyrics {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+        .light-theme .fullscreen-lyrics {
+            background: rgba(255, 255, 255, 0.95);
+        }
+        .fullscreen-lyrics-content {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 1.8rem;
+            line-height: 2rem;
+            white-space: pre-wrap;
+            text-align: center;
+            padding: 2rem 1rem;
+        }
+        .fullscreen-lyrics .lyric-line {
+            margin-bottom: 2rem;
+            opacity: 0.6;
+            transition: all 0.3s ease;
+            line-height: 1.4;
+        }
+        .fullscreen-lyrics .lyric-line.active {
+            font-size: 2.2rem;
+            opacity: 1;
+            color: var(--primary);
+            font-weight: 600;
+            animation: lyricGlow 0.5s ease-in-out;
+        }
+        @keyframes lyricGlow {
+            0% { transform: scale(1); text-shadow: none; }
+            50% { transform: scale(1.1); text-shadow: 0 0 10px var(--primary), 0 0 20px var(--primary); }
+            100% { transform: scale(1); text-shadow: 0 0 5px var(--primary); }
+        }
+
+        /* Кнопки управления */
+        .theme-toggle-btn, .share-btn, .translation-toggle, .autoplay-toggle, .loop-toggle, .nav-btn, .offline-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--dark-tertiary);
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .theme-toggle-btn:hover, .share-btn:hover, .translation-toggle:hover, .autoplay-toggle:hover, .loop-toggle:hover, .nav-btn:hover, .offline-btn:hover {
+            background: var(--primary);
+            transform: scale(1.05);
+        }
+        .nav-btn {
+            padding: 0.75rem;
+            background: var(--dark-secondary);
+        }
+
+        /* Полноэкранные элементы */
+        .close-fullscreen, .fullscreen-toggle {
+            background: var(--dark-tertiary);
+            color: var(--text-primary);
+            border-radius: 50%;
+            padding: 0.5rem;
+            transition: background-color 0.3s ease;
+        }
+        .close-fullscreen:hover, .fullscreen-toggle:hover {
+            background: var(--primary);
+        }
+
+        /* Прогресс-бар и ползунок громкости */
+        input[type="range"] {
+            -webkit-appearance: none;
+            background: var(--dark-tertiary);
+            height: 4px;
+            border-radius: 2px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background: var(--primary);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        /* Скроллбар */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--dark-secondary);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 3px;
+        }
+
+        /* Модальные окна */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1002;
+        }
+        .modal-content {
+            background: var(--dark-secondary);
+            padding: 2rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+        }
+        .modal-content input {
+            background: var(--dark-tertiary);
+            color: var(--text-primary);
+            border: none;
+            padding: 0.5rem;
+            border-radius: 8px;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+
+        /* Уведомление об офлайн-режиме */
+        #offline-warning {
+            transition: opacity 0.3s ease;
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .fullscreen-lyrics .lyric-line {
+                font-size: 1.5rem;
+                margin-bottom: 1.5rem;
+            }
+            .fullscreen-lyrics .lyric-line.active {
+                font-size: 1.8rem;
+            }
+            .track-view-container {
+                flex-direction: column;
+            }
+            .track-image-container, .lyrics-container {
+                width: 100% !important;
+                padding: 0 !important;
+            }
+            .music-card:hover, .playlist-card:hover {
+                transform: none;
+            }
+        }
+    </style>
 </head>
-<body>
-    <div id="app">
+<body class="text-white">
+    <div id="offline-warning" class="fixed top-0 left-0 right-0 bg-yellow-600 text-white text-center p-2 hidden">
+        Вы в офлайн-режиме. Некоторые функции могут быть недоступны.
+    </div>
+    <div id="app" class="container mx-auto px-4 py-8 pb-24">
         <!-- Главный экран -->
         <div id="main-view">
-            <header>
-                <h1>Моя Музыка</h1>
-                <button id="theme-toggle" class="icon-button">
-                    <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-                    </svg>
-                </button>
-            </header>
-
-            <div class="player-card" onclick="openTrack('1')">
-                <img src="https://avatars.mds.yandex.net/i?id=a3b036bcdd2d49eb7a42cd3f220f0d15f0f1af8f-5180074-images-thumbs&n=13" 
-                     alt="No one noticed" class="track-image">
-                <div class="track-info">
-                    <h3>No one noticed</h3>
-                    <p>The Marias</p>
+            <header class="flex justify-between items-center mb-8">
+                <h1 class="text-3xl font-bold bg-gradient-to-r from-green-400 to-green-600 bg-clip-text text-transparent">
+                    Музыкальный Плеер
+                </h1>
+                <div class="flex items-center gap-4">
+                    <button id="theme-toggle" class="theme-toggle-btn" aria-label="Переключить тему">
+                        <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                        <span id="theme-text">Светлая тема</span>
+                    </button>
                 </div>
+            </header>
+            <div class="mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-semibold">Плейлисты</h2>
+                    <button onclick="openCreatePlaylistModal()" class="bg-green-600 px-4 py-2 rounded-full hover:bg-green-700 transition">
+                        Создать плейлист
+                    </button>
+                </div>
+                <div id="playlists-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
             </div>
-
-            <h2 class="section-title">Плейлисты</h2>
-            <div id="playlists-grid" class="grid-container">
-                <div class="playlist-card" onclick="openPlaylist('p1')">
-                    <img src="https://avatars.mds.yandex.net/i?id=a3b036bcdd2d49eb7a42cd3f220f0d15f0f1af8f-5180074-images-thumbs&n=13" 
-                         alt="Поп" class="playlist-image">
-                    <div class="playlist-info">
-                        <h3>Поп</h3>
-                        <p>1 трек</p>
+            <div class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">Популярные треки</h2>
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div class="music-card" onclick="openTrack('1')">
+                        <img src="https://avatars.mds.yandex.net/i?id=a3b036bcdd2d49eb7a42cd3f220f0d15f0f1af8f-5180074-images-thumbs&n=13" alt="No one noticed" class="w-full aspect-square object-cover">
+                        <div class="p-3">
+                            <h3 class="font-medium truncate">No one noticed</h3>
+                            <p class="text-sm text-gray-400 truncate">The Marias</p>
+                        </div>
+                    </div>
+                    <div class="music-card" onclick="openTrack('2')">
+                        <img src="https://avatars.mds.yandex.net/i?id=e10d9bfd4cd146262fcaaaa8c938c7d52a42cf89-12421984-images-thumbs&n=13" alt="Forever" class="w-full aspect-square object-cover">
+                        <div class="p-3">
+                            <h3 class="font-medium truncate">Forever</h3>
+                            <p class="text-sm text-gray-400 truncate">IlyTOMMY</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Экран трека -->
+        <!-- Страница трека -->
         <div id="track-view" class="hidden">
-            <button onclick="backToMain()" class="back-button">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+            <button onclick="backToMain()" class="flex items-center text-gray-400 hover:text-white mb-8">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-2">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                Назад
+            </button>
+            <div class="track-view-container flex flex-col md:flex-row gap-8">
+                <div class="track-image-container md:w-1/3 flex flex-col items-center">
+                    <img id="track-image" src="" alt="Обложка" class="w-64 h-64 md:w-80 md:h-80 rounded-2xl object-cover mb-6 shadow-lg">
+                    <h1 id="track-title" class="text-3xl font-bold text-center mb-2"></h1>
+                    <h2 id="track-artist" class="text-xl text-gray-400 text-center mb-8"></h2>
+                    <div class="flex gap-4 mb-8 flex-wrap justify-center">
+                        <button onclick="playPreviousTrack()" class="nav-btn" aria-label="Предыдущий трек">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="19 3 5 12 19 21 19 3"></polygon>
+                                <line x1="5" y1="3" x2="5" y2="21"></line>
+                            </svg>
+                        </button>
+                        <button onclick="togglePlay()" class="bg-green-600 px-8 py-3 rounded-full hover:bg-green-700 transition flex items-center" aria-label="Воспроизведение/Пауза">
+                            <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-2">
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                            <svg id="pause-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-2 hidden">
+                                <rect x="6" y="4" width="4" height="16"></rect>
+                                <rect x="14" y="4" width="4" height="16"></rect>
+                            </svg>
+                            <span id="play-text">Играть</span>
+                        </button>
+                        <button onclick="playNextTrack()" class="nav-btn" aria-label="Следующий трек">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                <line x1="19" y1="3" x2="19" y2="21"></line>
+                            </svg>
+                        </button>
+                        <button id="loop-toggle" onclick="toggleLoop()" class="loop-toggle" aria-label="Переключить режим повтора">
+                            <svg id="loop-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 3l-4 4 4 4"></path>
+                                <path d="M10 21l4-4-4-4"></path>
+                                <path d="M17 3h4v4"></path>
+                                <path d="M7 21H3v-4"></path>
+                            </svg>
+                            <span id="loop-text">Повтор: Выкл</span>
+                        </button>
+                        <button onclick="openAddToPlaylistModal()" class="bg-gray-600 px-4 py-2 rounded-full hover:bg-gray-700 transition flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2" class="mr-2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Добавить в плейлист
+                        </button>
+                        <button onclick="shareTrack()" class="share-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-2">
+                                <circle cx="18" cy="5" r="3"></circle>
+                                <circle cx="6" cy="12" r="3"></circle>
+                                <circle cx="18" cy="19" r="3"></circle>
+                                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                            </svg>
+                            Поделиться
+                        </button>
+                        <button id="autoplay-toggle" onclick="toggleAutoplay()" class="autoplay-toggle">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-2">
+                                <path d="M21 7v10l-9-5 9-5z"></path>
+                                <path d="M12 7v10l-9-5 9-5z"></path>
+                            </svg>
+                            <span id="autoplay-text">Автовоспроизведение: Вкл</span>
+                        </button>
+                        <button onclick="cacheTrack(currentTrackId)" class="offline-btn bg-blue-600 px-4 py-2 rounded-full hover:bg-blue-700 transition flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-2">
+                                <path d="M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4M17 9l-5 5-5-5M12 12.8V2.5"/>
+                            </svg>
+                            Сохранить офлайн
+                        </button>
+                    </div>
+                    <div class="w-full mb-8">
+                        <div class="flex justify-between text-sm text-gray-400 mb-2">
+                            <span id="current-time">00:00</span>
+                            <span id="total-time">00:00</span>
+                        </div>
+                        <input type="range" id="progress-bar" value="0" max="100" class="w-full h-2 rounded-full appearance-none bg-gray-700">
+                        <div class="text-sm text-gray-400 mt-2">
+                            <span id="remaining-time">Осталось: -00:00</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="lyrics-container md:w-2/3 md:pl-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl font-semibold">Текст песни</h3>
+                        <div class="flex gap-4">
+                            <button id="translation-toggle" onclick="toggleTranslation()" class="translation-toggle hidden">
+                                Показать перевод
+                            </button>
+                            <button id="fullscreen-lyrics-btn" onclick="toggleFullscreenLyrics()" class="bg-gray-700/50 hover:bg-gray-600/50 p-2 rounded-lg transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="lyrics-container" class="bg-gray-800/50 rounded-xl p-6 max-h-96 overflow-y-auto"></div>
+                    <h3 class="text-2xl font-semibold mt-12 mb-6">Похожие треки</h3>
+                    <div class="flex overflow-x-auto gap-6 pb-4"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Полноэкранные тексты -->
+        <div id="fullscreen-lyrics" class="fullscreen-lyrics hidden">
+            <button class="close-fullscreen" onclick="toggleFullscreenLyrics()" aria-label="Закрыть полноэкранный режим">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
             </button>
-
-            <img id="track-image" src="" alt="Обложка трека" class="track-cover">
-
-            <div class="track-meta">
-                <h2 id="track-title">Название трека</h2>
-                <p id="track-artist">Исполнитель</p>
-            </div>
-
-            <div class="progress-container">
-                <div class="time-info">
-                    <span id="current-time">00:00</span>
-                    <span id="remaining-time">-03:24</span>
-                </div>
-                <input type="range" id="progress-bar" min="0" max="100" value="0">
-            </div>
-
-            <div class="player-controls">
-                <button onclick="toggleLoop()" class="control-button">
-                    <span id="loop-text">Повтор: Выкл</span>
-                </button>
-                
-                <div class="main-controls">
-                    <button onclick="playPreviousTrack()" class="control-button">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-                            <path d="M19 20L9 12l10-8v16zM5 19V5h2v14H5z"/>
-                        </svg>
-                    </button>
-                    
-                    <button onclick="togglePlay()" class="play-button">
-                        <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24">
-                            <path d="M8 5v14l11-7z"/>
-                        </svg>
-                        <svg id="pause-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24">
-                            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
-                        </svg>
-                    </button>
-                    
-                    <button onclick="playNextTrack()" class="control-button">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-                            <path d="M5 4v16l10-8L5 4zm12 0v16h2V4h-2z"/>
-                        </svg>
-                    </button>
-                </div>
-                
-                <button onclick="toggleFullscreenLyrics()" class="control-button">
-                    <span>Полный экран</span>
-                </button>
-            </div>
-
-            <div id="lyrics-container" class="lyrics">
-                <!-- Текст песни будет здесь -->
-            </div>
-        </div>
-
-        <!-- Полноэкранные текст песни -->
-        <div id="fullscreen-lyrics" class="hidden">
-            <div class="fullscreen-header">
-                <button onclick="toggleFullscreenLyrics()" class="back-button">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-                        <path d="M19 12H5M12 19l-7-7 7-7"/>
-                    </svg>
-                </button>
-                
-                <div class="track-info-mini">
-                    <h3 id="fullscreen-track-title">No one noticed</h3>
-                    <p id="fullscreen-track-artist">The Marias</p>
-                </div>
-                
-                <button onclick="togglePlay()" class="play-button">
+            <div class="fullscreen-lyrics-content" id="fullscreen-lyrics-content"></div>
+            <div class="fullscreen-controls flex justify-center gap-4">
+                <button onclick="togglePlay()" class="bg-green-600 px-6 py-2 rounded-full hover:bg-green-700 transition text-lg font-semibold">
                     <span id="fullscreen-play-text">Пауза</span>
                 </button>
-            </div>
-            
-            <div id="fullscreen-lyrics-content" class="fullscreen-lyrics">
-                <!-- Текст песни будет здесь -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Плеер внизу экрана -->
-    <div id="player" class="hidden">
-        <div class="player-container">
-            <img id="player-image" src="" alt="Обложка" class="player-image">
-            
-            <div class="player-track-info">
-                <h4 id="player-title">No one noticed</h4>
-                <p id="player-artist">The Marias</p>
-            </div>
-            
-            <div class="player-controls">
-                <button onclick="togglePlay()" class="player-button">
-                    <svg id="player-play-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z"/>
-                    </svg>
-                    <svg id="player-pause-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
-                    </svg>
+                <button id="fullscreen-translation-toggle" onclick="toggleTranslation()" class="translation-toggle hidden">
+                    Показать перевод
                 </button>
             </div>
+            <button class="fullscreen-toggle" onclick="toggleFullscreenLyrics()" aria-label="Свернуть полноэкранный режим">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path>
+                </svg>
+                Свернуть
+            </button>
         </div>
-        
-        <div class="player-progress">
-            <span id="player-current-time">00:00</span>
-            <input type="range" id="player-progress-bar" min="0" max="100" value="0">
-            <span id="player-total-time">03:24</span>
-        </div>
-    </div>
 
-    <script src="app.js"></script>
-</body>
+        <!-- Панель плеера -->
+        <div id="player" class="fixed bottom-0 left-0 right-0 bg-gray-800 p-4 hidden border-t border-gray-700">
+            <div class="container mx-auto flex items-center justify-between">
+                <div class="flex items-center space-x-4 flex-1 min-w-0">
+                    <img id="player-image" src="" alt="Обложка" class="w-12 h-12 object-cover rounded-lg">
+                    <div class="truncate">
+                        <h3 id="player-title" class="font-semibold truncate"></h3>
+                        <p id="player-artist" class="text-sm text-gray-400 truncate"></p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4 ml-4">
+                    <div class="flex text-sm text-gray-400 gap-2">
+                        <span id="player-current-time">00:00</span>
+                        <span>/</span>
+                        <span id="player-total-time">00:00</span>
+                        <span id="player-remaining-time" class="ml-2">Осталось: -00:00</span>
+                    </div>
+                    <button onclick="playPreviousTrack()" class="nav-btn" aria-label="Предыдущий трек">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="19 3 5 12 19 21 19 3"></polygon>
+                            <line x1="5" y1="3" x2="5" y2="21"></line>
+                        </svg>
+                    </button>
+                    <button onclick="togglePlay()" class="bg-green-600 p-3 rounded-full hover:bg-green-700 transition flex-shrink-0" aria-label="Воспроизведение/Пауза">
+                        <svg id="player-play-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                        <svg id="player-pause-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="hidden">
+                            <rect x="6" y="4" width="4" height="16"></rect>
+                            <rect x="14" y="4" width="4" height="16"></rect>
+                        </svg>
+                    </button>
+                    <button onclick="playNextTrack()" class="nav-btn" aria-label="Следующий трек">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            <line x1="19" y1="3" x2="19" y2="21"></line>
+                        </svg>
+                    </button>
+                    <button id="player-loop-toggle" onclick="toggleLoop()" class="loop-toggle" aria-label="Переключить режим повтора">
+                        <svg id="player-loop-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 3l-4 4 4 4"></path>
+                            <path d="M10 21l4-4-4-4"></path>
+                            <path d="M17 3h4v4"></path>
+                            <path d="M7 21H3v-4"></path>
+                        </svg>
+                        <span id="player-loop-text">Повтор: Выкл</span>
+                    </button>
+                    <input type="range" id="volume-control" value="50" max="100" class="w-20 md:w-24 h-2 rounded-full appearance-none bg-gray-700">
+                </div>
+            </div>
+        </div>
+
+        <!-- Модальные окна -->
+        <div id="create-playlist-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2 class="text-xl font-semibold mb-4">Создать плейлист</h2>
+                <input id="playlist-name-input" type="text" placeholder="Название плейлиста" maxlength="50">
+                <div class="flex justify-end mt-4">
+                    <button onclick="createPlaylist()" class="bg-green-600 px-4 py-2 rounded-full hover:bg-green-700 transition">Создать</button>
+                    <button onclick="closeCreatePlaylistModal()" class="bg-gray-600 px-4 py-2 rounded-full hover:bg-gray-700 transition">Отмена</button>
+                </div>
+            </div>
+        </div>
+        <div id="add-to-playlist-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2 class="text-xl font-semibold mb-4">Добавить в плейлист</h2>
+                <div id="playlists-list" class="mb-4"></div>
+                <div class="flex justify-end">
+                    <button onclick="closeAddToPlaylistModal()" class="bg-gray-600 px-4 py-2 rounded-full hover:bg-gray-700 transition">Закрыть</button>
+                </div>
+            </div>
+        </div>
+        <div id="share-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2 class="text-xl font-semibold mb-4">Поделиться треком</h2>
+                <div id="share-options" class="mb-4">
+                    <div class="flex items-center gap-2 bg-gray-700/50 p-2 rounded-lg cursor-pointer hover:bg-gray-600/50" onclick="copyTrackUrl()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        Копировать ссылку
+                    </div>
+                    <div class="flex items-center gap-2 bg-gray-700/50 p-2 rounded-lg cursor-pointer hover:bg-gray-600/50" onclick="shareToTwitter()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.2 0 3-1.2 3-1.2z"></path>
+                        </svg>
+                        Поделиться в Twitter/X
+                    </div>
+                    <div class="flex items-center gap-2 bg-gray-700/50 p-2 rounded-lg cursor-pointer hover:bg-gray-600/50" onclick="shareToWhatsApp()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                        </svg>
+                        Поделиться в WhatsApp
+                    </div>
+                    <div class="flex items-center gap-2 bg-gray-700/50 p-2 rounded-lg cursor-pointer hover:bg-gray-600/50" onclick="shareToTelegram()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 2l-2 20-7-6-5 3 1-7 13-10z"></path>
+                        </svg>
+                        Поделиться в Telegram
+                    </div>
+                </div>
+                <div id="manual-copy" class="hidden mb-4">
+                    <p class="mb-2">Скопируйте ссылку вручную:</p>
+                    <input id="manual-copy-id" type="text" readonly class="w-full">
+                    <button onclick="selectManualCopyText()" class="bg-green-600 px-4 py-2 rounded-full hover:bg-green-700 transition mt-2">Выделить</button>
+                </div>
+                <div class="flex justify-end">
+                    <button onclick="closeShareModal()" class="bg-gray-600 px-4 py-2 rounded-full hover:bg-gray-700 transition">Закрыть</button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // Mock data for tracks
+            const tracks = {
+                '1': {
+                    id: '1',
+                    title: 'No one noticed',
+                    artist: 'The Marias',
+                    image: 'https://avatars.mds.yandex.net/i?id=a3b036bcdd2d49eb7a42cd3f220f0d15f0f1af8f-5180074-images-thumbs&n=13',
+                    audio: 'https://files.catbox.moe/2nqd32.mp3',
+                    duration: 180,
+                    lyrics: 'No one noticed when I left the party\nNo one cared when I walked away\nI was just a shadow in the corner\nFading into the gray\n\nNo one saw me when I needed help\nNo one heard me when I cried\nI was just a whisper in the silence\nA tear that no one tried to dry',
+                    similar: [
+                        { title: 'Dreams', artist: 'The Cranberries', image: 'https://placehold.co/100x100/667eea/ffffff?text=Dreams' },
+                        { title: 'Sweet Child O\' Mine', artist: 'Guns N\' Roses', image: 'https://placehold.co/100x100/f093fb/ffffff?text=Sweet+Child' },
+                        { title: 'Bohemian Rhapsody', artist: 'Queen', image: 'https://placehold.co/100x100/4facfe/ffffff?text=Bohemian' }
+                    ]
+                },
+                '2': {
+                    id: '2',
+                    title: 'Forever',
+                    artist: 'IlyTOMMY',
+                    image: 'https://avatars.mds.yandex.net/i?id=e10d9bfd4cd146262fcaaaa8c938c7d52a42cf89-12421984-images-thumbs&n=13',
+                    audio: 'https://files.catbox.moe/2nqd32.mp3',
+                    duration: 210,
+                    lyrics: 'Forever in my heart you\'ll stay\nThrough the darkness and the light\nI\'ll never let you slip away\nYou\'re my day and my night\n\nForever in my soul you sing\nA melody so true\nThe joy that only you can bring\nThe only one for you',
+                    similar: [
+                        { title: 'Love Story', artist: 'Taylor Swift', image: 'https://placehold.co/100x100/667eea/ffffff?text=Love+Story' },
+                        { title: 'Perfect', artist: 'Ed Sheeran', image: 'https://placehold.co/100x100/f093fb/ffffff?text=Perfect' },
+                        { title: 'All of Me', artist: 'John Legend', image: 'https://placehold.co/100x100/4facfe/ffffff?text=All+of+Me' }
+                    ]
+                }
+            };
+
+            // Player state
+            let currentTrackId = null;
+            let isPlaying = false;
+            let audio = null;
+            let playlists = JSON.parse(localStorage.getItem('playlists')) || [];
+            let cachedTracks = JSON.parse(localStorage.getItem('cachedTracks')) || [];
+            let currentTrackIndex = 0;
+            let trackQueue = [];
+            let loopMode = false;
+            let autoplay = true;
+
+            // DOM elements
+            const mainView = document.getElementById('main-view');
+            const trackView = document.getElementById('track-view');
+            const player = document.getElementById('player');
+            const offlineWarning = document.getElementById('offline-warning');
+            
+            // Track view elements
+            const trackImage = document.getElementById('track-image');
+            const trackTitle = document.getElementById('track-title');
+            const trackArtist = document.getElementById('track-artist');
+            const lyricsContainer = document.getElementById('lyrics-container');
+            const similarTracksContainer = document.querySelector('#track-view .flex.overflow-x-auto');
+            const progressBar = document.getElementById('progress-bar');
+            const currentTimeEl = document.getElementById('current-time');
+            const totalTimeEl = document.getElementById('total-time');
+            const remainingTimeEl = document.getElementById('remaining-time');
+            const playText = document.getElementById('play-text');
+            const playIcon = document.getElementById('play-icon');
+            const pauseIcon = document.getElementById('pause-icon');
+            
+            // Fullscreen lyrics
+            const fullscreenLyrics = document.getElementById('fullscreen-lyrics');
+            const fullscreenLyricsContent = document.getElementById('fullscreen-lyrics-content');
+            const fullscreenPlayText = document.getElementById('fullscreen-play-text');
+            
+            // Player elements
+            const playerImage = document.getElementById('player-image');
+            const playerTitle = document.getElementById('player-title');
+            const playerArtist = document.getElementById('player-artist');
+            const playerCurrentTime = document.getElementById('player-current-time');
+            const playerTotalTime = document.getElementById('player-total-time');
+            const playerRemainingTime = document.getElementById('player-remaining-time');
+            const playerPlayIcon = document.getElementById('player-play-icon');
+            const playerPauseIcon = document.getElementById('player-pause-icon');
+            const volumeControl = document.getElementById('volume-control');
+            const loopText = document.getElementById('loop-text');
+            const playerLoopText = document.getElementById('player-loop-text');
+            const loopIcon = document.getElementById('loop-icon');
+            const playerLoopIcon = document.getElementById('player-loop-icon');
+
+            // Theme toggle
+            const themeToggle = document.getElementById('theme-toggle');
+            const themeIcon = document.getElementById('theme-icon');
+            const themeText = document.getElementById('theme-text');
+
+            // Translation toggle
+            const translationToggle = document.getElementById('translation-toggle');
+            const fullscreenTranslationToggle = document.getElementById('fullscreen-translation-toggle');
+
+            // Check if online
+            function checkOnlineStatus() {
+                if (!navigator.onLine) {
+                    offlineWarning.classList.remove('hidden');
+                }
+                window.addEventListener('online', () => {
+                    offlineWarning.classList.add('hidden');
+                });
+                window.addEventListener('offline', () => {
+                    offlineWarning.classList.remove('hidden');
+                });
+            }
+
+            // Theme toggle functionality
+            function setupTheme() {
+                const savedTheme = localStorage.getItem('theme') || 'dark';
+                if (savedTheme === 'light') {
+                    document.body.classList.add('light-theme');
+                    themeText.textContent = 'Темная тема';
+                    themeIcon.innerHTML = '<path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"></path><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>';
+                }
+            }
+
+            themeToggle.addEventListener('click', () => {
+                if (document.body.classList.contains('light-theme')) {
+                    document.body.classList.remove('light-theme');
+                    localStorage.setItem('theme', 'dark');
+                    themeText.textContent = 'Светлая тема';
+                    themeIcon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+                } else {
+                    document.body.classList.add('light-theme');
+                    localStorage.setItem('theme', 'light');
+                    themeText.textContent = 'Темная тема';
+                    themeIcon.innerHTML = '<path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"></path><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>';
+                }
+            });
+
+            // Format time
+            function formatTime(seconds) {
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${mins}:${secs.toString().padStart(2, '0')}`;
+            }
+
+            // Update player display
+            function updatePlayerDisplay() {
+                if (!currentTrackId) return;
+                
+                const track = tracks[currentTrackId];
+                if (!track) return;
+                
+                trackImage.src = track.image;
+                trackTitle.textContent = track.title;
+                trackArtist.textContent = track.artist;
+                playerImage.src = track.image;
+                playerTitle.textContent = track.title;
+                playerArtist.textContent = track.artist;
+                totalTimeEl.textContent = formatTime(track.duration);
+                playerTotalTime.textContent = formatTime(track.duration);
+                
+                // Set up Media Session API for lock screen controls
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title: track.title,
+                        artist: track.artist,
+                        album: 'My Collection',
+                        artwork: [
+                            { src: track.image, sizes: '512x512', type: 'image/jpeg' },
+                            { src: track.image, sizes: '256x256', type: 'image/jpeg' },
+                            { src: track.image, sizes: '128x128', type: 'image/jpeg' }
+                        ]
+                    });
+                    
+                    // Set action handlers
+                    navigator.mediaSession.setActionHandler('play', togglePlay);
+                    navigator.mediaSession.setActionHandler('pause', togglePlay);
+                    navigator.mediaSession.setActionHandler('previoustrack', playPreviousTrack);
+                    navigator.mediaSession.setActionHandler('nexttrack', playNextTrack);
+                    navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+                        if (audio) {
+                            audio.currentTime = Math.max(0, audio.currentTime - (details.seekOffset || 15));
+                        }
+                    });
+                    navigator.mediaSession.setActionHandler('seekforward', (details) => {
+                        if (audio) {
+                            audio.currentTime = Math.min(track.duration, audio.currentTime + (details.seekOffset || 15));
+                        }
+                    });
+                }
+                
+                // Load lyrics
+                loadLyrics();
+                
+                // Load similar tracks
+                loadSimilarTracks();
+            }
+
+            // Load lyrics
+            function loadLyrics() {
+                if (!currentTrackId) return;
+                
+                const track = tracks[currentTrackId];
+                if (!track) return;
+                
+                lyricsContainer.innerHTML = '';
+                fullscreenLyricsContent.innerHTML = '';
+                
+                const lines = track.lyrics.split('\n\n');
+                lines.forEach((lineGroup, index) => {
+                    const paragraph = document.createElement('div');
+                    paragraph.className = 'mb-4';
+                    
+                    const linesInGroup = lineGroup.split('\n');
+                    linesInGroup.forEach((line, lineIndex) => {
+                        const lineElement = document.createElement('div');
+                        lineElement.className = 'lyric-line';
+                        lineElement.textContent = line;
+                        
+                        // Add to fullscreen view
+                        const fullscreenLine = document.createElement('div');
+                        fullscreenLine.className = 'lyric-line';
+                        fullscreenLine.textContent = line;
+                        
+                        if (lineIndex === 0 && index === 0) {
+                            lineElement.classList.add('active');
+                            fullscreenLine.classList.add('active');
+                        }
+                        
+                        paragraph.appendChild(lineElement);
+                        fullscreenLyricsContent.appendChild(fullscreenLine);
+                    });
+                    
+                    lyricsContainer.appendChild(paragraph);
+                    // Add spacing between groups in fullscreen
+                    if (index < lines.length - 1) {
+                        fullscreenLyricsContent.appendChild(document.createElement('div'));
+                    }
+                });
+            }
+
+            // Load similar tracks
+            function loadSimilarTracks() {
+                if (!currentTrackId) return;
+                
+                const track = tracks[currentTrackId];
+                if (!track) return;
+                
+                similarTracksContainer.innerHTML = '';
+                track.similar.forEach(similarTrack => {
+                    const trackElement = document.createElement('div');
+                    trackElement.className = 'music-card flex-shrink-0 w-24';
+                    trackElement.innerHTML = `
+                        <img src="${similarTrack.image}" alt="${similarTrack.title}" class="w-full aspect-square object-cover rounded-lg">
+                        <div class="p-2">
+                            <h4 class="font-medium text-xs truncate">${similarTrack.title}</h4>
+                            <p class="text-xs text-gray-400 truncate">${similarTrack.artist}</p>
+                        </div>
+                    `;
+                    trackElement.onclick = () => openTrack(track.id); // In a real app, this would open the actual similar track
+                    similarTracksContainer.appendChild(trackElement);
+                });
+            }
+
+            // Open track view
+            function openTrack(trackId) {
+                currentTrackId = trackId;
+                updatePlayerDisplay();
+                mainView.classList.add('hidden');
+                trackView.classList.remove('hidden');
+                player.classList.remove('hidden');
+                
+                // Create a simple queue if none exists
+                if (trackQueue.length === 0) {
+                    trackQueue = Object.keys(tracks);
+                    currentTrackIndex = trackQueue.indexOf(trackId);
+                }
+                
+                // Setup audio if needed
+                if (!audio) {
+                    setupAudio();
+                } else {
+                    // If we're changing tracks, update the audio source
+                    if (audio.src !== tracks[trackId].audio) {
+                        audio.src = tracks[trackId].audio;
+                    }
+                }
+            }
+
+            // Back to main view
+            function backToMain() {
+                trackView.classList.add('hidden');
+                mainView.classList.remove('hidden');
+                if (!isPlaying) {
+                    player.classList.add('hidden');
+                }
+            }
+
+            // Setup audio
+            function setupAudio() {
+                if (audio) {
+                    audio.pause();
+                }
+                
+                if (!currentTrackId || !tracks[currentTrackId]) return;
+                
+                audio = new Audio(tracks[currentTrackId].audio);
+                audio.volume = volumeControl.value / 100;
+                
+                // Update progress
+                audio.addEventListener('timeupdate', () => {
+                    const currentTime = Math.floor(audio.currentTime);
+                    const duration = tracks[currentTrackId].duration;
+                    
+                    // Update progress bar
+                    const progress = (currentTime / duration) * 100;
+                    progressBar.value = progress;
+                    
+                    // Update time displays
+                    currentTimeEl.textContent = formatTime(currentTime);
+                    playerCurrentTime.textContent = formatTime(currentTime);
+                    
+                    // Update remaining time
+                    const remaining = duration - currentTime;
+                    remainingTimeEl.textContent = `Осталось: -${formatTime(remaining)}`;
+                    playerRemainingTime.textContent = `Осталось: -${formatTime(remaining)}`;
+                    
+                    // Update Media Session position state
+                    if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
+                        navigator.mediaSession.setPositionState({
+                            duration: duration,
+                            playbackRate: audio.playbackRate,
+                            position: currentTime
+                        });
+                    }
+                    
+                    // Update active lyrics
+                    updateActiveLyrics(currentTime);
+                });
+                
+                // When audio ends
+                audio.addEventListener('ended', () => {
+                    if (loopMode) {
+                        audio.currentTime = 0;
+                        audio.play();
+                    } else if (autoplay && currentTrackIndex < trackQueue.length - 1) {
+                        playNextTrack();
+                    } else {
+                        pauseTrack();
+                    }
+                });
+                
+                // Handle errors
+                audio.addEventListener('error', (e) => {
+                    console.error('Audio error:', e);
+                    // Try to load from cache if available
+                    if (cachedTracks.includes(currentTrackId) && navigator.onLine === false) {
+                        // In a real app, we would load from cached file
+                        alert('Воспроизвожу из кеша');
+                    }
+                });
+            }
+
+            // Update active lyrics based on current time
+            function updateActiveLyrics(currentTime) {
+                // This is a simplified version - in a real app, we would have timestamped lyrics
+                const lyricsLines = document.querySelectorAll('#lyrics-container .lyric-line');
+                const fullscreenLines = document.querySelectorAll('#fullscreen-lyrics-content .lyric-line');
+                
+                // Simple logic: highlight lyrics based on time progression
+                const totalDuration = tracks[currentTrackId].duration;
+                const progress = currentTime / totalDuration;
+                const totalLines = lyricsLines.length;
+                const activeLineIndex = Math.floor(progress * totalLines);
+                
+                // Remove active class from all lines
+                lyricsLines.forEach(line => line.classList.remove('active'));
+                fullscreenLines.forEach(line => line.classList.remove('active'));
+                
+                // Add active class to current line
+                if (activeLineIndex < totalLines) {
+                    lyricsLines[activeLineIndex].classList.add('active');
+                    fullscreenLines[activeLineIndex].classList.add('active');
+                }
+            }
+
+            // Toggle play/pause
+            function togglePlay() {
+                if (!audio) {
+                    setupAudio();
+                }
+                
+                if (isPlaying) {
+                    pauseTrack();
+                } else {
+                    playTrack();
+                }
+            }
+
+            // Play track
+            function playTrack() {
+                if (!audio) {
+                    setupAudio();
+                }
+                
+                audio.play().then(() => {
+                    isPlaying = true;
+                    playText.textContent = 'Пауза';
+                    playIcon.classList.add('hidden');
+                    pauseIcon.classList.remove('hidden');
+                    playerPlayIcon.classList.add('hidden');
+                    playerPauseIcon.classList.remove('hidden');
+                    fullscreenPlayText.textContent = 'Пауза';
+                    
+                    // Update Media Session
+                    if ('mediaSession' in navigator) {
+                        navigator.mediaSession.playbackState = 'playing';
+                    }
+                    
+                    player.classList.remove('hidden');
+                }).catch(err => {
+                    console.error('Playback error:', err);
+                });
+            }
+
+            // Pause track
+            function pauseTrack() {
+                if (audio) {
+                    audio.pause();
+                }
+                isPlaying = false;
+                playText.textContent = 'Играть';
+                playIcon.classList.remove('hidden');
+                pauseIcon.classList.add('hidden');
+                playerPlayIcon.classList.remove('hidden');
+                playerPauseIcon.classList.add('hidden');
+                fullscreenPlayText.textContent = 'Играть';
+                
+                // Update Media Session
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.playbackState = 'paused';
+                }
+            }
+
+            // Play previous track
+            function playPreviousTrack() {
+                if (currentTrackIndex > 0) {
+                    currentTrackIndex--;
+                    currentTrackId = trackQueue[currentTrackIndex];
+                    setupAudio();
+                    if (isPlaying) {
+                        playTrack();
+                    }
+                    updatePlayerDisplay();
+                }
+            }
+
+            // Play next track
+            function playNextTrack() {
+                if (currentTrackIndex < trackQueue.length - 1) {
+                    currentTrackIndex++;
+                    currentTrackId = trackQueue[currentTrackIndex];
+                    setupAudio();
+                    if (isPlaying) {
+                        playTrack();
+                    }
+                    updatePlayerDisplay();
+                }
+            }
+
+            // Toggle loop mode
+            function toggleLoop() {
+                loopMode = !loopMode;
+                loopText.textContent = loopMode ? 'Повтор: Вкл' : 'Повтор: Выкл';
+                playerLoopText.textContent = loopMode ? 'Повтор: Вкл' : 'Повтор: Выкл';
+                
+                // Visual feedback
+                [loopIcon, playerLoopIcon].forEach(icon => {
+                    if (loopMode) {
+                        icon.classList.add('text-green-500');
+                        icon.parentElement.classList.add('bg-green-600');
+                    } else {
+                        icon.classList.remove('text-green-500');
+                        icon.parentElement.classList.remove('bg-green-600');
+                    }
+                });
+            }
+
+            // Toggle autoplay
+            function toggleAutoplay() {
+                autoplay = !autoplay;
+                document.getElementById('autoplay-text').textContent = 
+                    autoplay ? 'Автовоспроизведение: Вкл' : 'Автовоспроизведение: Выкл';
+            }
+
+            // Toggle fullscreen lyrics
+            function toggleFullscreenLyrics() {
+                if (fullscreenLyrics.classList.contains('hidden')) {
+                    fullscreenLyrics.classList.remove('hidden');
+                    // Sync active lyrics
+                    if (audio) {
+                        updateActiveLyrics(Math.floor(audio.currentTime));
+                    }
+                } else {
+                    fullscreenLyrics.classList.add('hidden');
+                }
+            }
+
+            // Toggle translation
+            function toggleTranslation() {
+                // This is a placeholder - in a real app, we would have translated lyrics
+                alert('Функция перевода временно недоступна');
+            }
+
+            // Share track
+            function shareTrack() {
+                if (!currentTrackId) return;
+                
+                const track = tracks[currentTrackId];
+                const shareData = {
+                    title: track.title,
+                    text: `Слушаю "${track.title}" от ${track.artist}`,
+                    url: window.location.href + '?track=' + currentTrackId
+                };
+                
+                // Try to use Web Share API
+                if (navigator.share) {
+                    navigator.share(shareData).catch(err => {
+                        console.error('Error sharing:', err);
+                        showShareModal();
+                    });
+                } else {
+                    showShareModal();
+                }
+            }
+
+            // Show share modal
+            function showShareModal() {
+                document.getElementById('share-modal').classList.remove('hidden');
+            }
+
+            // Close share modal
+            function closeShareModal() {
+                document.getElementById('share-modal').classList.add('hidden');
+            }
+
+            // Copy track URL
+            function copyTrackUrl() {
+                const url = window.location.href + '?track=' + currentTrackId;
+                navigator.clipboard.writeText(url).then(() => {
+                    alert('Ссылка скопирована!');
+                    closeShareModal();
+                }).catch(err => {
+                    console.error('Could not copy text: ', err);
+                    // Fallback for when clipboard API is not available
+                    document.getElementById('manual-copy').classList.remove('hidden');
+                    document.getElementById('manual-copy-id').value = url;
+                });
+            }
+
+            // Select manual copy text
+            function selectManualCopyText() {
+                const input = document.getElementById('manual-copy-id');
+                input.select();
+                input.setSelectionRange(0, 99999);
+                document.execCommand('copy');
+                alert('Ссылка скопирована!');
+            }
+
+            // Share to Twitter
+            function shareToTwitter() {
+                if (!currentTrackId) return;
+                const track = tracks[currentTrackId];
+                const text = encodeURIComponent(`Слушаю "${track.title}" от ${track.artist} #музыка`);
+                const url = encodeURIComponent(window.location.href + '?track=' + currentTrackId);
+                window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
+                closeShareModal();
+            }
+
+            // Share to WhatsApp
+            function shareToWhatsApp() {
+                if (!currentTrackId) return;
+                const track = tracks[currentTrackId];
+                const text = encodeURIComponent(`Слушаю "${track.title}" от ${track.artist}\n${window.location.href}?track=${currentTrackId}`);
+                window.open(`https://wa.me/?text=${text}`, '_blank');
+                closeShareModal();
+            }
+
+            // Share to Telegram
+            function shareToTelegram() {
+                if (!currentTrackId) return;
+                const track = tracks[currentTrackId];
+                const text = encodeURIComponent(`Слушаю "${track.title}" от ${track.artist}\n${window.location.href}?track=${currentTrackId}`);
+                window.open(`https://t.me/share/url?url=${text}`, '_blank');
+                closeShareModal();
+            }
+
+            // Create playlist
+            function createPlaylist() {
+                const playlistNameInput = document.getElementById('playlist-name-input');
+                const name = playlistNameInput.value.trim();
+                
+                if (name) {
+                    const newPlaylist = {
+                        id: Date.now().toString(),
+                        name: name,
+                        tracks: []
+                    };
+                    playlists.push(newPlaylist);
+                    localStorage.setItem('playlists', JSON.stringify(playlists));
+                    closeCreatePlaylistModal();
+                    renderPlaylists();
+                }
+            }
+
+            // Open create playlist modal
+            function openCreatePlaylistModal() {
+                document.getElementById('create-playlist-modal').classList.remove('hidden');
+            }
+
+            // Close create playlist modal
+            function closeCreatePlaylistModal() {
+                document.getElementById('create-playlist-modal').classList.add('hidden');
+                document.getElementById('playlist-name-input').value = '';
+            }
+
+            // Open add to playlist modal
+            function openAddToPlaylistModal() {
+                if (!currentTrackId) return;
+                
+                const modal = document.getElementById('add-to-playlist-modal');
+                const list = document.getElementById('playlists-list');
+                list.innerHTML = '';
+                
+                if (playlists.length === 0) {
+                    list.innerHTML = '<p class="text-gray-400">Нет плейлистов. Создайте первый!</p>';
+                } else {
+                    playlists.forEach(playlist => {
+                        const item = document.createElement('div');
+                        item.className = 'flex items-center justify-between p-2 bg-gray-700/50 rounded-lg mb-2';
+                        item.innerHTML = `
+                            <span>${playlist.name}</span>
+                            <button onclick="addToPlaylist('${playlist.id}')" class="bg-green-600 px-3 py-1 rounded-full text-sm">
+                                Добавить
+                            </button>
+                        `;
+                        list.appendChild(item);
+                    });
+                }
+                
+                modal.classList.remove('hidden');
+            }
+
+            // Close add to playlist modal
+            function closeAddToPlaylistModal() {
+                document.getElementById('add-to-playlist-modal').classList.add('hidden');
+            }
+
+            // Add track to playlist
+            function addToPlaylist(playlistId) {
+                const playlist = playlists.find(p => p.id === playlistId);
+                if (playlist && currentTrackId && !playlist.tracks.includes(currentTrackId)) {
+                    playlist.tracks.push(currentTrackId);
+                    localStorage.setItem('playlists', JSON.stringify(playlists));
+                    alert('Трек добавлен в плейлист!');
+                    closeAddToPlaylistModal();
+                }
+            }
+
+            // Cache track for offline use
+            function cacheTrack(trackId) {
+                if (!navigator.onLine) {
+                    alert('Невозможно сохранить офлайн в режиме офлайн');
+                    return;
+                }
+                
+                if (cachedTracks.includes(trackId)) {
+                    alert('Трек уже сохранен для офлайна');
+                    return;
+                }
+                
+                // In a real app, we would use Service Workers and Cache API
+                // For this demo, we'll just mark it as cached
+                cachedTracks.push(trackId);
+                localStorage.setItem('cachedTracks', JSON.stringify(cachedTracks));
+                alert('Трек будет доступен в офлайн режиме');
+            }
+
+            // Render playlists
+            function renderPlaylists() {
+                const container = document.getElementById('playlists-grid');
+                container.innerHTML = '';
+                
+                if (playlists.length === 0) {
+                    container.innerHTML = '<p class="col-span-full text-gray-400 text-center py-8">У вас пока нет плейлистов</p>';
+                } else {
+                    playlists.forEach(playlist => {
+                        const playlistCard = document.createElement('div');
+                        playlistCard.className = 'playlist-card p-4 text-center';
+                        playlistCard.innerHTML = `
+                            <div class="w-16 h-16 bg-gray-700 rounded-lg mx-auto mb-3 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="8" x2="12" y2="16"></line>
+                                    <line x1="8" y1="12" x2="16" y2="12"></line>
+                                </svg>
+                            </div>
+                            <h3 class="font-medium truncate">${playlist.name}</h3>
+                            <p class="text-sm text-gray-400">${playlist.tracks.length} треков</p>
+                        `;
+                        playlistCard.onclick = () => {
+                            alert(`Открытие плейлиста "${playlist.name}"`);
+                            // In a real app, this would open the playlist view
+                        };
+                        container.appendChild(playlistCard);
+                    });
+                }
+            }
+
+            // Volume control
+            volumeControl.addEventListener('input', () => {
+                if (audio) {
+                    audio.volume = volumeControl.value / 100;
+                }
+            });
+
+            // Progress bar
+            progressBar.addEventListener('input', () => {
+                if (audio && currentTrackId) {
+                    const duration = tracks[currentTrackId].duration;
+                    audio.currentTime = (progressBar.value / 100) * duration;
+                }
+            });
+
+            // Initialize app
+            function initApp() {
+                checkOnlineStatus();
+                setupTheme();
+                renderPlaylists();
+                
+                // Set up event listeners for keyboard controls
+                window.addEventListener('keydown', (e) => {
+                    if (e.code === 'Space') {
+                        e.preventDefault();
+                        togglePlay();
+                    } else if (e.code === 'ArrowRight') {
+                        playNextTrack();
+                    } else if (e.code === 'ArrowLeft') {
+                        playPreviousTrack();
+                    }
+                });
+                
+                // Check for track in URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const trackParam = urlParams.get('track');
+                if (trackParam && tracks[trackParam]) {
+                    openTrack(trackParam);
+                }
+            }
+
+            // Start the app
+            document.addEventListener('DOMContentLoaded', initApp);
+        </script>
+    </body>
 </html>
